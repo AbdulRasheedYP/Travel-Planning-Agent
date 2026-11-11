@@ -171,24 +171,6 @@ Backend:
 http://127.0.0.1:8000
 ```
 
-## API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/` | Check API status |
-| POST | `/api/generate-trip/` | Generate a travel itinerary |
-
-### Example Request
-
-```json
-{
-  "starting_location": "Kochi",
-  "destination": "Munnar",
-  "budget": 15000,
-  "duration": 3,
-  "travelers": 2
-}
-```
 
 ## External APIs
 
