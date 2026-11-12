@@ -175,11 +175,7 @@ http://127.0.0.1:8000
 ## External APIs
 
 - **Google Gemini API:** Used for generating personalized travel itineraries.
-- **Open-Meteo API:** Used for retrieving destination weather information and geocoding.
-
-## Project Status
-
-Currently developed as a learning-focused MVP demonstrating multi-step AI workflows, API integration, structured output generation, and validation.
+- **Open-Meteo API:** Used for retrieving destination weather information and  geocoding.
 
 ## Future Improvements
 
@@ -188,7 +184,3 @@ Currently developed as a learning-focused MVP demonstrating multi-step AI workfl
 - Improved travel cost estimation
 - Enhanced itinerary validation
 - Deployment and production configuration
-
-## License
-
-This project is developed for educational and learning purposes.
