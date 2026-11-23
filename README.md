@@ -220,18 +220,6 @@ CREATE EXTENSION IF NOT EXISTS vector;
    ```
    *Frontend runs at `http://localhost:5173`.*
 
----
-
-## 📊 Git Workflow & Branching Strategy
-
-The repository follows a clean **Feature Branching Strategy** ensuring modularity and reviewable development:
-
-- `main`: Production-ready, validated code branch.
-- `feature/planner-and-llm`: Core task planning logic and Gemini execution service.
-- `feature/frontend-react`: React UI, form controls, and responsive styling.
-- `feature/documentation`: Project specifications and developer documentation.
-- `feature/context-and-database`: PostgreSQL database schema and context injection.
-- `feature/rag-pipeline`: Text chunking, Gemini vector embeddings, and `pgvector` Cosine similarity search.
 
 ---
 
