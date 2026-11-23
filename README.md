@@ -27,38 +27,45 @@ The system combines **multi-agent orchestration**, real-time **weather forecasti
 ## 🧠 System Architecture & Workflow
 
 ```text
-               User Travel Request
-          (Destination, Budget, Duration)
-                        │
-                        ▼
-               ┌─────────────────┐
-               │  Agent Planner  │
-               └────────┬────────┘
-                        │
-       ┌────────────────┴────────────────┐
-       ▼                                 ▼
-┌──────────────┐               ┌───────────────────┐
-│ Weather Task │               │   RAG Pipeline    │
-│ (Open-Meteo) │               │(PostgreSQL/pgvector│
-└──────┬───────┘               └─────────┬─────────┘
-       │ Live Forecast Data              │ Relevant Chunks
-       └────────────────┬────────────────┘
-                        │
-                        ▼
-               ┌─────────────────┐
-               │  Gemini Service │
-               │ (LLM Synthesis) │
-               └────────┬────────┘
-                        │ Structured JSON Output
-                        ▼
-               ┌─────────────────┐
-               │    Validator    │
-               │  (Guardrails)   │
-               └────────┬────────┘
-                        │ Validated Travel Plan
-                        ▼
-               Frontend Dashboard
-          (Interactive Day-wise UI)
+┌────────────────────────────────────────────────────────┐
+│                   User Travel Input                    │
+│       Destination • Budget • Duration • Travelers      │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+               ┌────────────────────────┐
+               │    AI Task Planner     │
+               │ (Workflow Coordinator) │
+               └────────────┬───────────┘
+                            │
+             ┌──────────────┴──────────────┐
+             │                             │
+             ▼                             ▼
+   ┌───────────────────┐         ┌───────────────────┐
+   │   Weather Agent   │         │   RAG Pipeline    │
+   │   (Open-Meteo)    │         │  (pgvector Store) │
+   │ Forecast & Climate│         │ Destination Chunks│
+   └─────────┬─────────┘         └─────────┬─────────┘
+             │                             │
+             └──────────────┬──────────────┘
+                            │ Augmented Context
+                            ▼
+               ┌────────────────────────┐
+               │  Google Gemini Engine  │
+               │  Structured Synthesis  │
+               └────────────┬───────────┘
+                            │
+                            ▼
+               ┌────────────────────────┐
+               │  Validation Guardrail  │
+               │  Schema & Duration OK  │
+               └────────────┬───────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                 Modern React Dashboard                 │
+│      Day-by-Day Itinerary • Weather Info • Budget      │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -126,28 +133,18 @@ Travel-Planning-Agent/
 
 ### Prerequisites
 
-Ensure you have the following installed:
 - **Python 3.10+**
 - **Node.js 18+ & npm**
-- **PostgreSQL 15+** with the **`pgvector`** extension installed
-- A **Google Gemini API Key** (from [Google AI Studio](https://aistudio.google.com/))
+- **PostgreSQL** with `pgvector` extension
+- **Google Gemini API Key**
 
 ---
 
-### 1. Database Setup (PostgreSQL with `pgvector`)
+### 1. Database Setup
 
-Start PostgreSQL and execute the following commands in `psql`:
+Ensure PostgreSQL is running with the `pgvector` extension enabled:
 
 ```sql
-CREATE DATABASE travel_agent;
-CREATE USER travel_user WITH PASSWORD 'your_password';
-ALTER ROLE travel_user SET client_encoding TO 'utf8';
-ALTER ROLE travel_user SET default_transaction_isolation TO 'read committed';
-ALTER ROLE travel_user SET timezone TO 'UTC';
-GRANT ALL PRIVILEGES ON DATABASE travel_agent TO travel_user;
-
--- Connect to the database and enable pgvector
-\c travel_agent;
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
@@ -155,19 +152,15 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 ### 2. Backend Setup
 
-1. **Navigate to the backend directory and activate a virtual environment:**
+1. **Activate virtual environment & install dependencies:**
    ```bash
    cd backend
    python3 -m venv venv
    source venv/bin/activate
-   ```
-
-2. **Install Python dependencies:**
-   ```bash
    pip install -r requirements.txt
    ```
 
-3. **Configure Environment Variables:**  
+2. **Configure Environment Variables:**  
    Create a `.env` file in the `backend/` directory:
    ```env
    GEMINI_API_KEY=your_google_gemini_api_key_here
@@ -175,121 +168,25 @@ CREATE EXTENSION IF NOT EXISTS vector;
    DB_PASSWORD=your_postgres_password
    ```
 
-4. **Run Migrations:**
+3. **Run Migrations & Start Server:**
    ```bash
    python manage.py makemigrations workflow
    python manage.py migrate
-   ```
-
-5. **Start the Django Development Server:**
-   ```bash
    python manage.py runserver
    ```
-   *The backend will be available at `http://127.0.0.1:8000`.*
+   *Backend runs at `http://127.0.0.1:8000`.*
 
 ---
 
 ### 3. Frontend Setup
 
-1. **Navigate to the frontend directory:**
+1. **Install dependencies & launch dev server:**
    ```bash
    cd ../frontend
-   ```
-
-2. **Install Node modules:**
-   ```bash
    npm install
-   ```
-
-3. **Launch the development server:**
-   ```bash
    npm run dev
    ```
-   *The frontend application will be running at `http://localhost:5173`.*
-
----
-
-## 📡 API Documentation
-
-### 1. Health Check
-`GET /api/`
-
-**Response:**
-```json
-{
-  "message": "Travel Planning Agent API is running",
-  "status": "success"
-}
-```
-
----
-
-### 2. Generate Travel Itinerary
-`POST /api/generate-trip/`
-
-**Request Headers:**
-```http
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "starting_location": "Kochi",
-  "destination": "Munnar",
-  "budget": 15000,
-  "duration": 3,
-  "travelers": 2
-}
-```
-
-**Sample Response:**
-```json
-{
-  "success": true,
-  "plan": [
-    "Check destination weather forecast",
-    "Retrieve relevant destination travel knowledge",
-    "Generate day-wise travel itinerary using Gemini",
-    "Validate itinerary duration and feasibility"
-  ],
-  "weather": {
-    "temperature": 18.5,
-    "description": "Partly Cloudy",
-    "windspeed": 7.2
-  },
-  "itinerary": {
-    "trip_title": "3-Day Scenic Escape to Munnar",
-    "destination": "Munnar",
-    "duration_days": 3,
-    "estimated_cost_inr": 14200,
-    "days": [
-      {
-        "day": 1,
-        "theme": "Arrival & Tea Plantations",
-        "morning": "Drive from Kochi to Munnar, check-in, visit Cheeyappara Waterfalls.",
-        "afternoon": "Tour the KDHP Tea Museum and explore tea processing.",
-        "evening": "Sunset walk through Blossom Hydel Park."
-      },
-      {
-        "day": 2,
-        "theme": "Wildlife & Scenic Peaks",
-        "morning": "Morning safari at Eravikulam National Park (spot the Nilgiri Tahr).",
-        "afternoon": "Boating at Mattupetty Dam and Echo Point.",
-        "evening": "Traditional Kathakali and Kalaripayattu cultural performance."
-      },
-      {
-        "day": 3,
-        "theme": "Panoramic Views & Return",
-        "morning": "Sunrise at Top Station overlooking the Western Ghats.",
-        "afternoon": "Souvenir shopping for fresh tea, spices, and homemade chocolates.",
-        "evening": "Departure journey back to Kochi."
-      }
-    ]
-  },
-  "warnings": []
-}
-```
+   *Frontend runs at `http://localhost:5173`.*
 
 ---
 
@@ -306,6 +203,6 @@ The repository follows a clean **Feature Branching Strategy** ensuring modularit
 
 ---
 
-## 📄 License
+## 🎓 Academic / Educational Project
 
-This project is open-source and available under the [MIT License](LICENSE).
+This project is developed for educational and academic learning purposes.
