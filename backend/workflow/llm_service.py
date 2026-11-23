@@ -51,39 +51,30 @@ def generate_itinerary(travel_request, weather_data=None):
     client = genai.Client(api_key=API_KEY)
 
     prompt = f"""
-    You are a professional Kerala travel planner.
+    You are an expert travel planner creating a personalized, day-wise travel itinerary.
 
-    Create a realistic day-wise travel itinerary.
+    Create a realistic, well-paced day-wise itinerary with engaging sightseeing, activities, and local experiences.
 
-    Travel details:
-    Starting location: {travel_request['starting_location']}
-    Destination: {travel_request['destination']}
-    Duration: {travel_request['duration']} days
-    Budget: {travel_request['budget']} INR
-    Travellers: {travel_request['travelers']}
+    Travel Details:
+    - Starting Location: {travel_request['starting_location']}
+    - Destination: {travel_request['destination']}
+    - Duration: {travel_request['duration']} days
+    - Total Budget: ₹{travel_request['budget']} INR
+    - Travellers: {travel_request['travelers']}
 
-    Weather information:
-    {weather_data if weather_data else "Not available"}
-    Retrieval Status:
-    {retrieval_status}
+    Destination Weather Forecast:
+    {weather_data if weather_data else "Weather information currently unavailable"}
 
-    Retrieved Travel Knowledge:
-    {travel_context if travel_context else "No relevant travel knowledge found."}
+    Curated Destination Knowledge (RAG):
+    {travel_context if travel_context else "No specific destination knowledge found. Use general destination knowledge."}
 
-    Requirements:
-    1. Create activities for every travel day.
-    2. Suggest suitable places to visit.
-    3. Consider the given budget.
-    4. Do not claim that hotels or transport are booked.
-    5. Do not invent live prices or weather information.
-    6. Return the itinerary in the requested JSON format.
-    7. Use retrieved travel knowledge when relevant.
-    8. Do not invent missing prices or opening hours.
-    9. Ignore unrelated travel knowledge.
-    10. Treat retrieved knowledge as reference information, not guaranteed truth.
-    11. Never invent specific facts that are missing from the retrieved knowledge.
-    12. If requested information is unavailable, clearly state that it is not available in the provided travel knowledge.
-
+    Planning Guidelines:
+    1. Each day must feature engaging, specific sightseeing activities (key tourist attractions, scenic viewpoints, nature walks, cultural highlights, and local food).
+    2. Deeply utilize the retrieved destination knowledge to include genuine local attractions, activities, and route advice.
+    3. Group nearby attractions logically to minimize travel time between spots.
+    4. Adapt the itinerary to the destination weather conditions (e.g., plan scenic outdoor walks on clear days, indoor/museum visits or relaxing drives during rain).
+    5. Keep activities realistic within the specified duration and budget.
+    6. Return the response strictly adhering to the JSON schema.
     """
 
     schema = {

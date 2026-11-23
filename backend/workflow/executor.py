@@ -60,7 +60,7 @@ def execute_travel_workflow(travel_request):
     if weather_result["success"]:
         weather_data = weather_result["weather"]
     else:
-        warnings.append("Weather information unavailable")
+        warnings.append("Weather service notice: Live weather forecast currently unavailable.")
 
     # Step 2: Generate itinerary using Gemini
 
