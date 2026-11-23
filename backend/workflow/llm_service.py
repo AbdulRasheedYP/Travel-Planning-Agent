@@ -8,10 +8,32 @@ from google.genai import types
 
 load_dotenv()
 
+
 API_KEY = os.getenv("GEMINI_API_KEY")
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
+travel_context = """
+Destination: Munnar
 
+Popular places:
+- Eravikulam National Park
+- Mattupetty Dam
+- Echo Point
+- Tea Museum
+
+Activities:
+- Boating
+- Tea plantation visit
+- Nature sightseeing
+
+Family-friendly places:
+- Mattupetty Dam
+- Tea Museum
+
+Important:
+- Entry fees are not provided.
+- Opening hours are not provided.
+"""
 def generate_itinerary(travel_request, weather_data=None):
 
     if not API_KEY:
@@ -36,6 +58,8 @@ def generate_itinerary(travel_request, weather_data=None):
 
     Weather information:
     {weather_data if weather_data else "Not available"}
+    Travel Knowledge:
+    {travel_context}
 
     Requirements:
     1. Create activities for every travel day.
@@ -44,6 +68,9 @@ def generate_itinerary(travel_request, weather_data=None):
     4. Do not claim that hotels or transport are booked.
     5. Do not invent live prices or weather information.
     6. Return the itinerary in the requested JSON format.
+    7. Use the provided travel knowledge when relevant.
+    8. Do not invent missing prices or opening hours.
+    9. Ignore the travel knowledge if it is unrelated to the destination.
     """
 
     schema = {
