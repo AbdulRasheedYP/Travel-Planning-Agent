@@ -8,8 +8,8 @@ def create_travel_plan(travel_request):
             "task":"Get destination weather information"
         },
         {
-            "step":2,
-            "task":"Generate travel itinerary using Gemni"
+            "step": 2,
+            "task": "Generate travel itinerary using Gemini and RAG"
         },
         {
             "step":3,

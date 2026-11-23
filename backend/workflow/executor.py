@@ -1,6 +1,7 @@
 from .weather import get_weather
 from .llm_service import generate_itinerary
 from .validator import validate_itinerary
+from .planner import create_travel_plan
 
 
 def execute_weather_task(destination):
@@ -47,6 +48,9 @@ def execute_itinerary_task(travel_request, weather_data=None):
 
 
 def execute_travel_workflow(travel_request):
+
+    # Step 0: Plan workflow tasks
+    plan = create_travel_plan(travel_request)
 
     # Step 1: Get weather information
 
@@ -96,6 +100,7 @@ def execute_travel_workflow(travel_request):
 
     return {
         "success": True,
+        "plan": plan.get("tasks", []),
         "itinerary": itinerary,
         "weather": weather_data,
         "warnings": warnings
