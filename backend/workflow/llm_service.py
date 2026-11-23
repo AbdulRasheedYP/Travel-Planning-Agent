@@ -11,7 +11,7 @@ from .retrieval_service import retrieve_relevant_chunks
 load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
-MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
 
 
 def generate_itinerary(travel_request, weather_data=None):
@@ -30,11 +30,15 @@ def generate_itinerary(travel_request, weather_data=None):
         f"Trip request: {travel_request}"
     )
 
-    retrieved_chunks = retrieve_relevant_chunks(
-        query=query,
-        destination=destination,
-        top_k=3,
-    )
+    try:
+        retrieved_chunks = retrieve_relevant_chunks(
+            query=query,
+            destination=destination,
+            top_k=3,
+        )
+    except Exception:
+        retrieved_chunks = []
+
     if retrieved_chunks:
         travel_context = "\n\n".join(
             item.content for item in retrieved_chunks
@@ -43,7 +47,6 @@ def generate_itinerary(travel_request, weather_data=None):
     else:
         travel_context = "No relevant travel knowledge found."
         retrieval_status = "No relevant knowledge available"
-
 
     client = genai.Client(api_key=API_KEY)
 
@@ -83,4 +86,50 @@ def generate_itinerary(travel_request, weather_data=None):
 
     """
 
-    # Keep your existing schema and Gemini generation code below.
+    schema = {
+        "type": "OBJECT",
+        "properties": {
+            "trip_title": {
+                "type": "STRING"
+            },
+            "days": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "day": {"type": "INTEGER"},
+                        "title": {"type": "STRING"},
+                        "activities": {
+                            "type": "ARRAY",
+                            "items": {"type": "STRING"}
+                        }
+                    },
+                    "required": ["day", "title", "activities"]
+                }
+            }
+        },
+        "required": ["trip_title", "days"]
+    }
+
+    try:
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=schema
+            )
+        )
+
+        itinerary = json.loads(response.text)
+
+        return {
+            "success": True,
+            "itinerary": itinerary
+        }
+
+    except Exception as error:
+        return {
+            "success": False,
+            "error": str(error)
+        }

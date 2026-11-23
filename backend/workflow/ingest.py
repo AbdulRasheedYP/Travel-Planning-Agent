@@ -9,16 +9,18 @@ def ingest_document(filename, destination):
     text = load_document(filename)
     chunks = chunk_text(text)
 
-    # Remove previous chunks for this destination
+    clean_destination = destination.strip()
+
+    # Remove previous chunks for this destination (case-insensitive)
     TravelKnowledge.objects.filter(
-        destination=destination
+        destination__iexact=clean_destination
     ).delete()
 
     for chunk in chunks:
         embedding = generate_document_embedding(chunk)
 
         TravelKnowledge.objects.create(
-            destination=destination,
+            destination=clean_destination,
             content=chunk,
             embedding=embedding,
             source=filename,
