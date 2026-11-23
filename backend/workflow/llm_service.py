@@ -1,3 +1,4 @@
+
 import os
 import json
 
@@ -5,35 +6,14 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from .retrieval_service import retrieve_relevant_chunks
 
 load_dotenv()
 
-
 API_KEY = os.getenv("GEMINI_API_KEY")
-MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
 
-travel_context = """
-Destination: Munnar
 
-Popular places:
-- Eravikulam National Park
-- Mattupetty Dam
-- Echo Point
-- Tea Museum
-
-Activities:
-- Boating
-- Tea plantation visit
-- Nature sightseeing
-
-Family-friendly places:
-- Mattupetty Dam
-- Tea Museum
-
-Important:
-- Entry fees are not provided.
-- Opening hours are not provided.
-"""
 def generate_itinerary(travel_request, weather_data=None):
 
     if not API_KEY:
@@ -42,35 +22,59 @@ def generate_itinerary(travel_request, weather_data=None):
             "error": "Gemini API key not configured"
         }
 
+    destination = travel_request.get("destination", "")
+
+    query = (
+        f"Travel attractions, activities and sightseeing "
+        f"information for {destination}. "
+        f"Trip request: {travel_request}"
+    )
+
+    try:
+        retrieved_chunks = retrieve_relevant_chunks(
+            query=query,
+            destination=destination,
+            top_k=3,
+        )
+    except Exception:
+        retrieved_chunks = []
+
+    if retrieved_chunks:
+        travel_context = "\n\n".join(
+            item.content for item in retrieved_chunks
+        )
+        retrieval_status = "Relevant knowledge found"
+    else:
+        travel_context = "No relevant travel knowledge found."
+        retrieval_status = "No relevant knowledge available"
+
     client = genai.Client(api_key=API_KEY)
 
     prompt = f"""
-    You are a professional Kerala travel planner.
+    You are an expert travel planner creating a personalized, day-wise travel itinerary.
 
-    Create a realistic day-wise travel itinerary.
+    Create a realistic, well-paced day-wise itinerary with engaging sightseeing, activities, and local experiences.
 
-    Travel details:
-    Starting location: {travel_request['starting_location']}
-    Destination: {travel_request['destination']}
-    Duration: {travel_request['duration']} days
-    Budget: {travel_request['budget']} INR
-    Travellers: {travel_request['travelers']}
+    Travel Details:
+    - Starting Location: {travel_request['starting_location']}
+    - Destination: {travel_request['destination']}
+    - Duration: {travel_request['duration']} days
+    - Total Budget: ₹{travel_request['budget']} INR
+    - Travellers: {travel_request['travelers']}
 
-    Weather information:
-    {weather_data if weather_data else "Not available"}
-    Travel Knowledge:
-    {travel_context}
+    Destination Weather Forecast:
+    {weather_data if weather_data else "Weather information currently unavailable"}
 
-    Requirements:
-    1. Create activities for every travel day.
-    2. Suggest suitable places to visit.
-    3. Consider the given budget.
-    4. Do not claim that hotels or transport are booked.
-    5. Do not invent live prices or weather information.
-    6. Return the itinerary in the requested JSON format.
-    7. Use the provided travel knowledge when relevant.
-    8. Do not invent missing prices or opening hours.
-    9. Ignore the travel knowledge if it is unrelated to the destination.
+    Curated Destination Knowledge (RAG):
+    {travel_context if travel_context else "No specific destination knowledge found. Use general destination knowledge."}
+
+    Planning Guidelines:
+    1. Each day must feature engaging, specific sightseeing activities (key tourist attractions, scenic viewpoints, nature walks, cultural highlights, and local food).
+    2. Deeply utilize the retrieved destination knowledge to include genuine local attractions, activities, and route advice.
+    3. Group nearby attractions logically to minimize travel time between spots.
+    4. Adapt the itinerary to the destination weather conditions (e.g., plan scenic outdoor walks on clear days, indoor/museum visits or relaxing drives during rain).
+    5. Keep activities realistic within the specified duration and budget.
+    6. Return the response strictly adhering to the JSON schema.
     """
 
     schema = {
