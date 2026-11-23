@@ -1,3 +1,4 @@
+
 import os
 import json
 
@@ -5,35 +6,14 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from .retrieval_service import retrieve_relevant_chunks
 
 load_dotenv()
-
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
-travel_context = """
-Destination: Munnar
 
-Popular places:
-- Eravikulam National Park
-- Mattupetty Dam
-- Echo Point
-- Tea Museum
-
-Activities:
-- Boating
-- Tea plantation visit
-- Nature sightseeing
-
-Family-friendly places:
-- Mattupetty Dam
-- Tea Museum
-
-Important:
-- Entry fees are not provided.
-- Opening hours are not provided.
-"""
 def generate_itinerary(travel_request, weather_data=None):
 
     if not API_KEY:
@@ -41,6 +21,29 @@ def generate_itinerary(travel_request, weather_data=None):
             "success": False,
             "error": "Gemini API key not configured"
         }
+
+    destination = travel_request.get("destination", "")
+
+    query = (
+        f"Travel attractions, activities and sightseeing "
+        f"information for {destination}. "
+        f"Trip request: {travel_request}"
+    )
+
+    retrieved_chunks = retrieve_relevant_chunks(
+        query=query,
+        destination=destination,
+        top_k=3,
+    )
+    if retrieved_chunks:
+        travel_context = "\n\n".join(
+            item.content for item in retrieved_chunks
+        )
+        retrieval_status = "Relevant knowledge found"
+    else:
+        travel_context = "No relevant travel knowledge found."
+        retrieval_status = "No relevant knowledge available"
+
 
     client = genai.Client(api_key=API_KEY)
 
@@ -58,8 +61,11 @@ def generate_itinerary(travel_request, weather_data=None):
 
     Weather information:
     {weather_data if weather_data else "Not available"}
-    Travel Knowledge:
-    {travel_context}
+    Retrieval Status:
+    {retrieval_status}
+
+    Retrieved Travel Knowledge:
+    {travel_context if travel_context else "No relevant travel knowledge found."}
 
     Requirements:
     1. Create activities for every travel day.
@@ -68,55 +74,13 @@ def generate_itinerary(travel_request, weather_data=None):
     4. Do not claim that hotels or transport are booked.
     5. Do not invent live prices or weather information.
     6. Return the itinerary in the requested JSON format.
-    7. Use the provided travel knowledge when relevant.
+    7. Use retrieved travel knowledge when relevant.
     8. Do not invent missing prices or opening hours.
-    9. Ignore the travel knowledge if it is unrelated to the destination.
+    9. Ignore unrelated travel knowledge.
+    10. Treat retrieved knowledge as reference information, not guaranteed truth.
+    11. Never invent specific facts that are missing from the retrieved knowledge.
+    12. If requested information is unavailable, clearly state that it is not available in the provided travel knowledge.
+
     """
 
-    schema = {
-        "type": "OBJECT",
-        "properties": {
-            "trip_title": {
-                "type": "STRING"
-            },
-            "days": {
-                "type": "ARRAY",
-                "items": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "day": {"type": "INTEGER"},
-                        "title": {"type": "STRING"},
-                        "activities": {
-                            "type": "ARRAY",
-                            "items": {"type": "STRING"}
-                        }
-                    },
-                    "required": ["day", "title", "activities"]
-                }
-            }
-        },
-        "required": ["trip_title", "days"]
-    }
-
-    try:
-        response = client.models.generate_content(
-            model=MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=schema
-            )
-        )
-
-        itinerary = json.loads(response.text)
-
-        return {
-            "success": True,
-            "itinerary": itinerary
-        }
-
-    except Exception as error:
-        return {
-            "success": False,
-            "error": str(error)
-        }
+    # Keep your existing schema and Gemini generation code below.
